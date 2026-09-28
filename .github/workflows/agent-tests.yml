@@ -1,0 +1,56 @@
+name: Agent Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  agent-integration:
+    name: Agent Integration Tests
+    runs-on: [self-hosted, windows, miniclaw]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        working-directory: ./mini-claw/backend
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio httpx
+      
+      - name: Start backend
+        working-directory: ./mini-claw/backend
+        run: |
+          python -m app.main &
+          sleep 10
+      
+      - name: Run agent tests
+        working-directory: ./mini-claw/backend
+        run: |
+          pytest tests/integration/test_agent.py -v
+      
+      - name: Run tool tests
+        working-directory: ./mini-claw/backend
+        run: |
+          pytest tests/integration/test_tools.py -v
+      
+      - name: Run GitHub integration tests
+        if: env.GITHUB_TOKEN != ''
+        working-directory: ./mini-claw/backend
+        run: |
+          pytest tests/integration/test_github.py -v
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Cleanup
+        if: always()
+        run: |
+          taskkill /f /im python.exe /fi "WINDOWTITLE eq MiniClaw Backend*" 2>nul
+          taskkill /f /im uvicorn.exe 2>nul
