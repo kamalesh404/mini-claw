@@ -127,7 +127,7 @@ class Message(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     tool_calls: Mapped[Optional[List[dict]]] = mapped_column(SQLiteJSON, nullable=True)
     tool_call_id: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)
-    metadata: Mapped[Optional[dict]] = mapped_column(SQLiteJSON, nullable=True)
+    message_metadata: Mapped[Optional[dict]] = mapped_column(SQLiteJSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
 
     conversation: Mapped["Conversation"] = relationship(back_populates="messages")

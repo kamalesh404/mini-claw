@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import Optional, List
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -33,13 +33,14 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
     EMBEDDING_DEVICE: str = "cpu"
 
-    JWT_SECRET_KEY: str = Field(default="change-me-in-production", min_length=32)
+    JWT_SECRET_KEY: str = Field(default="MiniClawSuperSecretKeyForDevelopmentOnly32CharsMin", min_length=32)
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173"]
-    ALLOWED_HOSTS: List[str] = ["localhost", "127.0.0.1"]
+    # Store as string in .env, parse via computed fields
+    CORS_ORIGINS_STR: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
+    ALLOWED_HOSTS_STR: str = "localhost,127.0.0.1"
 
     ENABLE_BROWSER: bool = True
     ENABLE_GITHUB: bool = True
@@ -86,12 +87,15 @@ class Settings(BaseSettings):
             return Path(v)
         return v
 
-    @field_validator("CORS_ORIGINS", "ALLOWED_HOSTS", mode="before")
-    @classmethod
-    def parse_list(cls, v):
-        if isinstance(v, str):
-            return [item.strip() for item in v.split(",")]
-        return v
+    @computed_field
+    @property
+    def CORS_ORIGINS(self) -> List[str]:
+        return [item.strip() for item in self.CORS_ORIGINS_STR.split(",") if item.strip()]
+
+    @computed_field
+    @property
+    def ALLOWED_HOSTS(self) -> List[str]:
+        return [item.strip() for item in self.ALLOWED_HOSTS_STR.split(",") if item.strip()]
 
 
 settings = Settings()
